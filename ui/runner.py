@@ -600,8 +600,7 @@ def run_status_command_loop():
                         continue
 
                     # /status (в чатах и в ЛС админа)
-                    if (text.lower().startswith("/status")
-                        and (chat_id in C.STATUS_CHAT_IDS or is_admin_dm)):
+                    if text.lower().startswith("/status"):
                         # определяем, кто вызвал: администратор или нет
                         is_admin = (user_id == C.ADMIN_USER_ID)
                         page_index = 0
@@ -691,8 +690,12 @@ def run_status_command_loop():
                         BF_CHAIN_AFTER_CREATE.discard(user_id)
                         try: answer_callback(C.STATUS_BOT_TOKEN, cb_id, "Сессия закрыта.")
                         except Exception: pass
-                        status_text = build_status_message(C.BOT_LIST_FILE, C.PIDS_FILE)
-                        _replace_message(chat_id, message_id, status_text, _build_main_keyboard())
+                        # Возвращаемся к пагинированному статусу (стр. 1)
+                        is_admin = (user_id == C.ADMIN_USER_ID)
+                        page_index = 0
+                        html, total_pages = _build_status_page(page_index)
+                        kb = _status_keyboard(is_admin, page_index, total_pages)
+                        _replace_message(chat_id, message_id, html, kb)
                         continue
 
                     if data and data.startswith(BF_MENU_BTN_PREFIX):
@@ -806,8 +809,12 @@ def run_status_command_loop():
                             answer_callback(C.STATUS_BOT_TOKEN, cb_id, f"✅ Статус обновлён — {time.strftime('%H:%M:%S')}")
                         except Exception:
                             pass
-                        new_status = build_status_message(C.BOT_LIST_FILE, C.PIDS_FILE)
-                        _replace_message(chat_id, message_id, new_status, _build_main_keyboard())
+                        # Переотрисуем статус с пагинацией (стр. 1)
+                        is_admin = (user_id == C.ADMIN_USER_ID)
+                        page_index = 0
+                        html, total_pages = _build_status_page(page_index)
+                        kb = _status_keyboard(is_admin, page_index, total_pages)
+                        _replace_message(chat_id, message_id, html, kb)
                         continue
 
                     if data == C.RESTART_ALL_CB:
